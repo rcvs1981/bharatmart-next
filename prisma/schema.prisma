@@ -83,6 +83,9 @@ model Product {
   isWholesale    Boolean
   sku            String?
   barcode        String?
+  qrCode         String?
+  hsnCode        String?
+  gstRate        Float?
   productCode    String?
   unit           String?
   productPrice   Float

@@ -1,11 +1,24 @@
 import db from "@/lib/db";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request) {
+const parseOptionalFloat = (value: string | number | null | undefined) =>
+  value === "" || value === undefined || value === null
+    ? null
+    : parseFloat(String(value));
+
+const parseOptionalInt = (value: string | number | null | undefined) =>
+  value === "" || value === undefined || value === null
+    ? null
+    : parseInt(String(value));
+
+export async function POST(request: Request) {
   try {
     const {
       barcode,
+      qrCode,
       categoryId,
+      gstRate,
+      hsnCode,
       description,
       farmerId,
       isActive,
@@ -42,7 +55,10 @@ export async function POST(request) {
     const newProduct = await db.product.create({
       data: {
         barcode,
+        qrCode,
         categoryId,
+        gstRate: parseOptionalFloat(gstRate),
+        hsnCode,
         description,
         userId: farmerId,
         productImages,
@@ -57,10 +73,10 @@ export async function POST(request) {
         tags,
         title,
         unit,
-        wholesalePrice: parseFloat(wholesalePrice),
-        wholesaleQty: parseInt(wholesaleQty),
-        productStock: parseInt(productStock),
-        qty: parseInt(qty),
+        wholesalePrice: parseOptionalFloat(wholesalePrice),
+        wholesaleQty: parseOptionalInt(wholesaleQty),
+        productStock: parseOptionalInt(productStock),
+        qty: parseOptionalInt(qty),
         // category: {
         //   connect: { id: categoryId },
         // },
@@ -83,7 +99,7 @@ export async function POST(request) {
   }
 }
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   const categoryId = request.nextUrl.searchParams.get("catId");
   const sortBy = request.nextUrl.searchParams.get("sort");
   const min = request.nextUrl.searchParams.get("min");

@@ -4,12 +4,15 @@ import CategoryCarousel from "@/components/frontend/CategoryCarousel";
 import ProductImageCarousel from "@/components/frontend/ProductImageCarousel";
 import ProductShareButton from "@/components/frontend/ProductShareButton";
 import { getData } from "@/lib/getData";
-import { BaggageClaim, Minus, Plus, Send, Share2, Tag } from "lucide-react";
-import Image from "next/image";
+import { Send, Tag } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 
-export default async function ProductDetailPage({ params: { slug } }) {
+export default async function ProductDetailPage({
+  params: { slug },
+}: {
+  params: { slug: string };
+}) {
   const product = await getData(`products/product/${slug}`);
   const { id } = product;
   const catId = product.categoryId;
@@ -18,6 +21,16 @@ export default async function ProductDetailPage({ params: { slug } }) {
   const products = categoryProducts.filter((product) => product.id !== id);
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const urlToShare = `${baseUrl}/products/${slug}`;
+  const barcodeValue = product.barcode || product.sku || product.productCode;
+  const qrValue = product.qrCode || product.productCode || urlToShare;
+  const barcodeUrl = barcodeValue
+    ? `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(
+        barcodeValue
+      )}&code=Code128&translate-esc=true`
+    : null;
+  const qrCodeUrl = qrValue
+    ? `https://quickchart.io/qr?text=${encodeURIComponent(qrValue)}&size=140`
+    : null;
   return (
     <div>
       <Breadcrumb />
@@ -37,6 +50,8 @@ export default async function ProductDetailPage({ params: { slug } }) {
             <p className="py-2 ">{product.description}</p>
             <div className="flex items-center gap-8 mb-4">
               <p>SKU: {product.sku}</p>
+              {product.hsnCode && <p>HSN: {product.hsnCode}</p>}
+              {product.gstRate && <p>GST: {product.gstRate}%</p>}
               <p className="bg-lime-200 py-1.5 px-4 rounded-full text-slate-900 ">
                 <b>Stock</b>: {product.productStock}
               </p>
@@ -56,7 +71,24 @@ export default async function ProductDetailPage({ params: { slug } }) {
           </div>
           <div className="flex justify-between items-center py-6">
             <AddToCartButton product={product} />
-            <p>Something Here</p>
+            {(barcodeUrl || qrCodeUrl) && (
+              <div className="flex items-center gap-4">
+                {barcodeUrl && (
+                  <img
+                    src={barcodeUrl}
+                    alt="Product barcode"
+                    className="h-10 w-36 object-contain bg-white rounded p-1"
+                  />
+                )}
+                {qrCodeUrl && (
+                  <img
+                    src={qrCodeUrl}
+                    alt="Product QR code"
+                    className="h-16 w-16 object-contain bg-white rounded p-1"
+                  />
+                )}
+              </div>
+            )}
           </div>
         </div>
         <div className="col-span-3 sm:block bg-white border border-gray-300 rounded-lg  dark:bg-gray-700 dark:border-gray-700 text-slate-800 overflow-hidden hidden">

@@ -1,7 +1,17 @@
 import db from "@/lib/db";
 import { NextResponse } from "next/server";
 
-export async function GET(request, { params: { id } }) {
+const parseOptionalFloat = (value: string | number | null | undefined) =>
+  value === "" || value === undefined || value === null
+    ? null
+    : parseFloat(String(value));
+
+const parseOptionalInt = (value: string | number | null | undefined) =>
+  value === "" || value === undefined || value === null
+    ? null
+    : parseInt(String(value));
+
+export async function GET(request: Request, { params: { id } }: { params: { id: string } }) {
   try {
     const product = await db.product.findUnique({
       where: {
@@ -21,7 +31,7 @@ export async function GET(request, { params: { id } }) {
   }
 }
 
-export async function DELETE(request, { params: { id } }) {
+export async function DELETE(request: Request, { params: { id } }: { params: { id: string } }) {
   try {
     const existingProduct = await db.product.findUnique({
       where: {
@@ -55,11 +65,14 @@ export async function DELETE(request, { params: { id } }) {
   }
 }
 
-export async function PUT(request, { params: { id } }) {
+export async function PUT(request: Request, { params: { id } }: { params: { id: string } }) {
   try {
     const {
       barcode,
+      qrCode,
       categoryId,
+      gstRate,
+      hsnCode,
       description,
       farmerId,
       imageUrl,
@@ -96,7 +109,10 @@ export async function PUT(request, { params: { id } }) {
       where: { id },
       data: {
         barcode,
+        qrCode,
         categoryId,
+        gstRate: parseOptionalFloat(gstRate),
+        hsnCode,
         description,
         userId: farmerId,
         imageUrl,
@@ -110,10 +126,10 @@ export async function PUT(request, { params: { id } }) {
         tags,
         title,
         unit,
-        wholesalePrice: parseFloat(wholesalePrice),
-        wholesaleQty: parseInt(wholesaleQty),
-        productStock: parseInt(productStock),
-        qty: parseInt(qty),
+        wholesalePrice: parseOptionalFloat(wholesalePrice),
+        wholesaleQty: parseOptionalInt(wholesaleQty),
+        productStock: parseOptionalInt(productStock),
+        qty: parseOptionalInt(qty),
         // category: {
         //   connect: { id: categoryId },
         // },
