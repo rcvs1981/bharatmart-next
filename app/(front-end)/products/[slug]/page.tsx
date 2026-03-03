@@ -8,7 +8,11 @@ import { Send, Tag } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 
-export default async function ProductDetailPage({ params: { slug } }) {
+export default async function ProductDetailPage({
+  params: { slug },
+}: {
+  params: { slug: string };
+}) {
   const product = await getData(`products/product/${slug}`);
   const { id } = product;
   const catId = product.categoryId;

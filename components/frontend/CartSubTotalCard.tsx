@@ -1,7 +1,7 @@
 import Link from "next/link";
 import React from "react";
 
-export default function CartSubTotalCard({ subTotal }) {
+export default function CartSubTotalCard({ subTotal }: { subTotal: string | number }) {
   const shipping = 10.0;
   const gstRate = Number(process.env.NEXT_PUBLIC_GST_RATE || 18);
   const tax = (Number(subTotal) * gstRate) / 100;

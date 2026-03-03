@@ -17,11 +17,17 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import MultipleImageInput from "../FormInputs/MultipleImageInput";
 
+type NewProductFormProps = {
+  categories: any[];
+  farmers: any[];
+  updateData?: Record<string, any>;
+};
+
 export default function NewProductForm({
   categories,
   farmers,
   updateData = {},
-}) {
+}: NewProductFormProps) {
   console.log(updateData);
   const initialImageUrl = updateData?.imageUrl ?? "";
   const initialTags = updateData?.tags ?? [];
@@ -51,9 +57,9 @@ export default function NewProductForm({
   function redirect() {
     router.push("/dashboard/products");
   }
-  const [productImages, setProductImages] = useState([]);
+  const [productImages, setProductImages] = useState<string[]>([]);
   console.log(productImages);
-  async function onSubmit(data) {
+  async function onSubmit(data: Record<string, any>) {
     const slug = generateSlug(data.title);
     const productCode = generateUserCode("LLP", data.title);
     data.slug = slug;

@@ -1,17 +1,17 @@
 import db from "@/lib/db";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const parseOptionalFloat = (value) =>
+const parseOptionalFloat = (value: string | number | null | undefined) =>
   value === "" || value === undefined || value === null
     ? null
-    : parseFloat(value);
+    : parseFloat(String(value));
 
-const parseOptionalInt = (value) =>
+const parseOptionalInt = (value: string | number | null | undefined) =>
   value === "" || value === undefined || value === null
     ? null
-    : parseInt(value);
+    : parseInt(String(value));
 
-export async function POST(request) {
+export async function POST(request: Request) {
   try {
     const {
       barcode,
@@ -99,7 +99,7 @@ export async function POST(request) {
   }
 }
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   const categoryId = request.nextUrl.searchParams.get("catId");
   const sortBy = request.nextUrl.searchParams.get("sort");
   const min = request.nextUrl.searchParams.get("min");

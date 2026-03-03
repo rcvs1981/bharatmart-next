@@ -1,17 +1,17 @@
 import db from "@/lib/db";
 import { NextResponse } from "next/server";
 
-const parseOptionalFloat = (value) =>
+const parseOptionalFloat = (value: string | number | null | undefined) =>
   value === "" || value === undefined || value === null
     ? null
-    : parseFloat(value);
+    : parseFloat(String(value));
 
-const parseOptionalInt = (value) =>
+const parseOptionalInt = (value: string | number | null | undefined) =>
   value === "" || value === undefined || value === null
     ? null
-    : parseInt(value);
+    : parseInt(String(value));
 
-export async function GET(request, { params: { id } }) {
+export async function GET(request: Request, { params: { id } }: { params: { id: string } }) {
   try {
     const product = await db.product.findUnique({
       where: {
@@ -31,7 +31,7 @@ export async function GET(request, { params: { id } }) {
   }
 }
 
-export async function DELETE(request, { params: { id } }) {
+export async function DELETE(request: Request, { params: { id } }: { params: { id: string } }) {
   try {
     const existingProduct = await db.product.findUnique({
       where: {
@@ -65,7 +65,7 @@ export async function DELETE(request, { params: { id } }) {
   }
 }
 
-export async function PUT(request, { params: { id } }) {
+export async function PUT(request: Request, { params: { id } }: { params: { id: string } }) {
   try {
     const {
       barcode,
