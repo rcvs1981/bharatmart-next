@@ -6,26 +6,26 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 // title, couponCode, expiryDate
 model Coupon {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  id         String   @id @default(cuid())
   title      String
   couponCode String
   expiryDate DateTime
   isActive   Boolean
-  user   User   @relation(fields: [vendorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  vendorId String @db.ObjectId
+  user       User     @relation(fields: [vendorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  vendorId   String
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Banner {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(cuid())
   title     String
   link      String
   imageUrl  String
@@ -41,7 +41,7 @@ model Banner {
 // many to many => Market => Category
 
 model Category {
-  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  id          String     @id @default(cuid())
   title       String
   slug        String     @unique
   imageUrl    String?
@@ -50,30 +50,28 @@ model Category {
   products    Product[]
   trainings   Training[]
 
-  marketIds String[] @db.ObjectId
-  markets   Market[] @relation(fields: [marketIds], references: [id])
+  markets Market[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model Market {
-  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  id          String  @id @default(cuid())
   title       String
   slug        String  @unique
   logoUrl     String?
   description String?
   isActive    Boolean
 
-  categoryIds String[]   @db.ObjectId
-  categories  Category[] @relation(fields: [categoryIds], references: [id])
+  categories Category[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model Product {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  id             String   @id @default(cuid())
   title          String
   slug           String   @unique
   imageUrl       String?
@@ -92,11 +90,11 @@ model Product {
   productStock   Int?
   qty            Int?
   tags           String[]
-  categoryId     String   @db.ObjectId
+  categoryId     String
   category       Category @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String @db.ObjectId
+  userId String
 
   orderItems OrderItem[]
   sales      Sale[]
@@ -105,7 +103,7 @@ model Product {
 }
 
 model Training {
-  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  id          String  @id @default(cuid())
   title       String
   slug        String  @unique
   imageUrl    String?
@@ -114,7 +112,7 @@ model Training {
   isActive    Boolean
 
   category   Category? @relation(fields: [categoryId], references: [id])
-  categoryId String    @db.ObjectId
+  categoryId String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime? @updatedAt
 }
@@ -135,15 +133,15 @@ enum OrderStatus {
 }
 
 model User {
-  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  id                String         @id @default(cuid())
   name              String?
   email             String?        @unique
   password          String
   emailVerified     Boolean        @default(false)
   products          Product[]
-  coupons          Coupon[]
+  coupons           Coupon[]
   role              UserRole       @default(USER)
-  plan             String?        
+  plan              String?
   verificationToken String?
   status            Boolean        @default(false)
   farmerProfile     FarmerProfile?
@@ -151,33 +149,33 @@ model User {
   orders            Order[] //User can have multiple Orders
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
-  sales              Sale[]
+  sales             Sale[]
 }
 
 // Model for normal user profile
 model UserProfile {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String    @unique @db.ObjectId
-   // Personal Details
-  name     String?
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  // Personal Details
+  name          String?
   firstName     String?
   lastName      String?
   email         String?
-  username         String?
+  username      String?
   phone         String?
   // shipping details
   streetAddress String?
   city          String?
   country       String?
   district      String?
-  dateOfBirth DateTime?
-  profileImage String?
+  dateOfBirth   DateTime?
+  profileImage  String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model FarmerProfile {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  id                 String   @id @default(cuid())
   code               String?
   contactPerson      String?
   contactPersonPhone String?
@@ -194,15 +192,15 @@ model FarmerProfile {
   mainCrop           String?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String @unique @db.ObjectId
+  userId String @unique
 
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 }
 
 model Order {
-  id            String  @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String  @db.ObjectId
+  id            String  @id @default(cuid())
+  userId        String
   // Personal Details
   firstName     String
   lastName      String
@@ -213,8 +211,8 @@ model Order {
   city          String?
   country       String?
   apartment     String?
-      state     String?
-      zip       String?
+  state         String?
+  zip           String?
   shippingCost  Float?
   orderNumber   String?
   //Payment Method
@@ -232,10 +230,10 @@ model Order {
 }
 
 model OrderItem {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId   String   @db.ObjectId
-  productId String   @db.ObjectId
-  vendorId  String   @db.ObjectId
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  vendorId  String
   imageUrl  String?
   title     String?
   quantity  Int
@@ -247,10 +245,10 @@ model OrderItem {
 }
 
 model Sale {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId      String   @db.ObjectId
-  productId    String   @db.ObjectId
-  vendorId     String   @db.ObjectId
+  id           String   @id @default(cuid())
+  orderId      String
+  productId    String
+  vendorId     String
   total        Float
   productTitle String
   productImage String
