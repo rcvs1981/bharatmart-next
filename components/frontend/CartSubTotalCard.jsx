@@ -3,7 +3,8 @@ import React from "react";
 
 export default function CartSubTotalCard({ subTotal }) {
   const shipping = 10.0;
-  const tax = 0.0;
+  const gstRate = Number(process.env.NEXT_PUBLIC_GST_RATE || 18);
+  const tax = (Number(subTotal) * gstRate) / 100;
   const totalPrice = (
     Number(subTotal) +
     Number(shipping) +
@@ -16,6 +17,10 @@ export default function CartSubTotalCard({ subTotal }) {
         Add your Shipping address at checkout to see shipping charges
       </p>
       <div className="flex items-center justify-between py-4 font-bold">
+        <span>GST ({gstRate}%)</span>
+        <span>${tax.toFixed(2)}</span>
+      </div>
+      <div className="flex items-center justify-between py-4 font-bold border-t border-slate-500">
         <span>Total </span>
         <span>${totalPrice}</span>
       </div>

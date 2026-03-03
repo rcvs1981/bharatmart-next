@@ -1,6 +1,16 @@
 import db from "@/lib/db";
 import { NextResponse } from "next/server";
 
+const parseOptionalFloat = (value) =>
+  value === "" || value === undefined || value === null
+    ? null
+    : parseFloat(value);
+
+const parseOptionalInt = (value) =>
+  value === "" || value === undefined || value === null
+    ? null
+    : parseInt(value);
+
 export async function GET(request, { params: { slug } }) {
   try {
     const product = await db.product.findUnique({
@@ -59,7 +69,10 @@ export async function PUT(request, { params: { id } }) {
   try {
     const {
       barcode,
+      qrCode,
       categoryId,
+      gstRate,
+      hsnCode,
       description,
       farmerId,
       imageUrl,
@@ -96,7 +109,10 @@ export async function PUT(request, { params: { id } }) {
       where: { id },
       data: {
         barcode,
+        qrCode,
         categoryId,
+        gstRate: parseOptionalFloat(gstRate),
+        hsnCode,
         description,
         userId: farmerId,
         imageUrl,
@@ -110,10 +126,10 @@ export async function PUT(request, { params: { id } }) {
         tags,
         title,
         unit,
-        wholesalePrice: parseFloat(wholesalePrice),
-        wholesaleQty: parseInt(wholesaleQty),
-        productStock: parseInt(productStock),
-        qty: parseInt(qty),
+        wholesalePrice: parseOptionalFloat(wholesalePrice),
+        wholesaleQty: parseOptionalInt(wholesaleQty),
+        productStock: parseOptionalInt(productStock),
+        qty: parseOptionalInt(qty),
         // category: {
         //   connect: { id: categoryId },
         // },

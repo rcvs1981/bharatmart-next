@@ -57,6 +57,7 @@ export default function NewProductForm({
     const slug = generateSlug(data.title);
     const productCode = generateUserCode("LLP", data.title);
     data.slug = slug;
+    data.qrCode = data.qrCode || productCode;
     data.productImages = productImages;
     data.tags = tags;
     data.qty = 1;
@@ -109,6 +110,28 @@ export default function NewProductForm({
         <TextInput
           label="Product Barcode"
           name="barcode"
+          register={register}
+          errors={errors}
+          className="w-full"
+        />
+        <TextInput
+          label="Product QR Code Value"
+          name="qrCode"
+          register={register}
+          errors={errors}
+          className="w-full"
+        />
+        <TextInput
+          label="HSN Code"
+          name="hsnCode"
+          register={register}
+          errors={errors}
+          className="w-full"
+        />
+        <TextInput
+          label="GST Rate (%)"
+          name="gstRate"
+          type="number"
           register={register}
           errors={errors}
           className="w-full"

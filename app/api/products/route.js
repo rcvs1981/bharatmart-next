@@ -1,11 +1,24 @@
 import db from "@/lib/db";
 import { NextResponse } from "next/server";
 
+const parseOptionalFloat = (value) =>
+  value === "" || value === undefined || value === null
+    ? null
+    : parseFloat(value);
+
+const parseOptionalInt = (value) =>
+  value === "" || value === undefined || value === null
+    ? null
+    : parseInt(value);
+
 export async function POST(request) {
   try {
     const {
       barcode,
+      qrCode,
       categoryId,
+      gstRate,
+      hsnCode,
       description,
       farmerId,
       isActive,
@@ -42,7 +55,10 @@ export async function POST(request) {
     const newProduct = await db.product.create({
       data: {
         barcode,
+        qrCode,
         categoryId,
+        gstRate: parseOptionalFloat(gstRate),
+        hsnCode,
         description,
         userId: farmerId,
         productImages,
@@ -57,10 +73,10 @@ export async function POST(request) {
         tags,
         title,
         unit,
-        wholesalePrice: parseFloat(wholesalePrice),
-        wholesaleQty: parseInt(wholesaleQty),
-        productStock: parseInt(productStock),
-        qty: parseInt(qty),
+        wholesalePrice: parseOptionalFloat(wholesalePrice),
+        wholesaleQty: parseOptionalInt(wholesaleQty),
+        productStock: parseOptionalInt(productStock),
+        qty: parseOptionalInt(qty),
         // category: {
         //   connect: { id: categoryId },
         // },
