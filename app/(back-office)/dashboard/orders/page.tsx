@@ -1,14 +1,13 @@
+import { auth } from "@/auth";
 import OrderCard from "@/components/Order/OrderCard";
-import { authOptions } from "@/lib/authOptions";
 import { getData } from "@/lib/getData";
-import { getServerSession } from "next-auth";
 import React from "react";
 
 export default async function page() {
   // Fetch All Orders
   const orders = await getData("orders");
   // Get the user Id
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session) return;
 
   const userId = session?.user?.id;

@@ -1,14 +1,13 @@
+import { auth } from "@/auth";
 import React from "react";
 import OverviewCards from "./Farmer/OverviewCards";
-import { authOptions } from "@/lib/authOptions";
 import { getData } from "@/lib/getData";
-import { getServerSession } from "next-auth";
 import { Info } from "lucide-react";
 
 export default async function FarmerDashboard() {
   // Sales,
   //products
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const user = session?.user;
   // console.log(session?.user);
   const { name, email, id, role, emailVerified, status = false } = user;

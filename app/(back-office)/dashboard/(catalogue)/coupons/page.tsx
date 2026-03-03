@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import Heading from "@/components/backoffice/Heading";
 import PageHeader from "@/components/backoffice/PageHeader";
 import TableActions from "@/components/backoffice/TableActions";
@@ -7,11 +8,9 @@ import { getData } from "@/lib/getData";
 import Link from "next/link";
 import React from "react";
 import { columns } from "./columns";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
 
 export default async function Coupons() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const id = session?.user?.id;
   const role = session?.user?.role;
   const allCoupons = await getData("coupons");

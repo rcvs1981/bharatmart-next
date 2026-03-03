@@ -1,4 +1,4 @@
-import NextAuth from "next-auth";
+import type { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 
@@ -71,6 +71,9 @@ export const authOptions = {
     }),
   ],
   callbacks: {
+    authorized({ auth }) {
+      return !!auth;
+    },
     async session({ session, token }) {
       if (token) {
         console.log(`token:${token} in session`);
@@ -79,7 +82,7 @@ export const authOptions = {
         session.user.email = token.email;
         session.user.role = token.role;
         session.user.status = token.status;
-        session.user.image = token.picture;
+        session.user.image = token.image;
         session.user.emailVerified = token.emailVerified;
       }
       return session;
@@ -91,10 +94,10 @@ export const authOptions = {
         token.email = user.email;
         token.role = user.role;
         token.status = user.status;
-        token.image = user.picture;
+        token.image = user.image;
         token.emailVerified = user.emailVerified;
       }
       return token;
     },
   },
-};
+} satisfies NextAuthConfig;
