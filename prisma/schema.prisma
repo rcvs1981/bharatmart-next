@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
+  
 }
 
 // title, couponCode, expiryDate
@@ -48,7 +48,7 @@ model Category {
   description String?
   isActive    Boolean
   products    Product[]
-  trainings   Training[]
+  
 
   marketIds String[] @db.ObjectId
   markets   Market[] @relation(fields: [marketIds], references: [id])
@@ -104,20 +104,7 @@ model Product {
   updatedAt  DateTime?   @updatedAt
 }
 
-model Training {
-  id          String  @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  slug        String  @unique
-  imageUrl    String?
-  description String?
-  content     String?
-  isActive    Boolean
 
-  category   Category? @relation(fields: [categoryId], references: [id])
-  categoryId String    @db.ObjectId
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime? @updatedAt
-}
 
 enum UserRole {
   ADMIN
