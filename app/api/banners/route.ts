@@ -1,43 +1,59 @@
-import db from "@/lib/db";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request) {
+import { db } from "@/lib/db";
+import { BannerCreateInputSchema } from "@/lib/schemas/banner";
+
+export async function POST(request: NextRequest) {
   try {
-    const { title, link, imageUrl, isActive } = await request.json();
+    const payload = await request.json();
+    const parsedInput = BannerCreateInputSchema.safeParse(payload);
+
+    if (!parsedInput.success) {
+      return NextResponse.json(
+        {
+          message: "Invalid banner payload",
+          errors: parsedInput.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const data = parsedInput.data;
     const newBanner = await db.banner.create({
       data: {
-        title,
-        link,
-        imageUrl,
-        isActive,
+        title: data.title,
+        link: data.link,
+        imageUrl: data.imageUrl,
+        isActive: data.isActive,
       },
     });
-    console.log(newBanner);
-    return NextResponse.json(newBanner);
+
+    return NextResponse.json(newBanner, { status: 201 });
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        error: "Failed to create Banner",
+        message: "Failed to create banner",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );
   }
 }
-export async function GET(request) {
+
+export async function GET(_request: NextRequest) {
   try {
     const banners = await db.banner.findMany({
       orderBy: {
         createdAt: "desc",
       },
     });
+
     return NextResponse.json(banners);
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        message: "Failed to Fetch Banner",
-        error,
+        message: "Failed to fetch banners",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

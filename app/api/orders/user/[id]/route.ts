@@ -1,27 +1,40 @@
-import db from "@/lib/db";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request, { params: { id } }) {
+import { db } from "@/lib/db";
+import { OrderIdParamSchema } from "@/lib/schemas/order";
+
+type ParamsContext = {
+  params: Promise<{ id: string }>;
+};
+
+async function getUserId(paramsPromise: ParamsContext["params"]) {
+  const params = await paramsPromise;
+  return OrderIdParamSchema.parse(params).id;
+}
+
+export async function GET(_request: NextRequest, context: ParamsContext) {
   try {
-    const order = await db.order.findUnique({
+    const userId = await getUserId(context.params);
+    const orders = await db.order.findMany({
       where: {
-        userId:id,
+        userId,
       },
       include: {
         orderItems: true,
       },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
-    return NextResponse.json(order);
+
+    return NextResponse.json(orders);
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        message: "Failed to Fetch an Order",
-        error,
+        message: "Failed to fetch user orders",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );
   }
 }
-
-

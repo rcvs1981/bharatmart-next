@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 import React from "react";
 import OverviewCards from "./Farmer/OverviewCards";
 import { getData } from "@/lib/getData";
@@ -10,7 +10,7 @@ export default async function FarmerDashboard() {
   const session = await auth();
   const user = session?.user;
   // console.log(session?.user);
-  const { name, email, id, role, emailVerified, status = false } = user;
+  const { name, email, id, role, isEmailVerified, status = false } = user;
   const sales = await getData("sales");
   const salesById = sales.filter((sale) => sale.vendorId === id);
   const products = await getData("products");

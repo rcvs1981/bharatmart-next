@@ -1,47 +1,98 @@
-import db from "@/lib/db";
-import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request) {
+import { db } from "@/lib/db";
+import { CouponCreateInputSchema, CouponQuerySchema } from "@/lib/schemas/coupon";
+
+export async function POST(request: NextRequest) {
   try {
-    const { title, couponCode, expiryDate, isActive, vendorId } =
-      await request.json();
+    const payload = await request.json();
+    const parsedInput = CouponCreateInputSchema.safeParse(payload);
+
+    if (!parsedInput.success) {
+      return NextResponse.json(
+        {
+          message: "Invalid coupon payload",
+          errors: parsedInput.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const data = parsedInput.data;
+    const vendor = await db.user.findUnique({
+      where: { id: data.vendorId },
+      select: { id: true },
+    });
+
+    if (!vendor) {
+      return NextResponse.json(
+        {
+          message: "Seller not found",
+        },
+        { status: 404 }
+      );
+    }
+
     const newCoupon = await db.coupon.create({
       data: {
-        title,
-        couponCode,
-        expiryDate,
-        isActive,
-        vendorId,
+        title: data.title,
+        couponCode: data.couponCode,
+        expiryDate: data.expiryDate,
+        isActive: data.isActive,
+        vendorId: data.vendorId,
       },
     });
-    console.log(newCoupon);
-    return NextResponse.json(newCoupon);
+
+    return NextResponse.json(newCoupon, { status: 201 });
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        message: "Failed to create Coupon",
-        error,
+        message: "Failed to create coupon",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );
   }
 }
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   try {
+    const queryInput = {
+      vendorId: request.nextUrl.searchParams.get("vendorId") ?? undefined,
+      isActive: request.nextUrl.searchParams.get("isActive") ?? undefined,
+    };
+    const parsedQuery = CouponQuerySchema.safeParse(queryInput);
+
+    if (!parsedQuery.success) {
+      return NextResponse.json(
+        {
+          message: "Invalid query parameters",
+          errors: parsedQuery.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const query = parsedQuery.data;
+    const where: Prisma.CouponWhereInput = {};
+
+    if (query.vendorId) where.vendorId = query.vendorId;
+    if (query.isActive) where.isActive = query.isActive === "true";
+
     const coupons = await db.coupon.findMany({
+      where,
       orderBy: {
         createdAt: "desc",
       },
     });
+
     return NextResponse.json(coupons);
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        message: "Failed to Fetch Coupon",
-        error,
+        message: "Failed to fetch coupons",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

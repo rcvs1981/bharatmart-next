@@ -1,88 +1,77 @@
-import db from "@/lib/db";
-import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request) {
-  const sortBy = request.nextUrl.searchParams.get("sort");
-  const min = request.nextUrl.searchParams.get("min");
-  const max = request.nextUrl.searchParams.get("max");
-  const searchTerm = request.nextUrl.searchParams.get("search") || "";
-  const page = request.nextUrl.searchParams.get("page") || 1;
-  const pageSize = 3;
-  console.log(sortBy, categoryId);
-  let where = {
-    categoryId,
-  };
-  if (min && max) {
-    where.salePrice = {
-      gte: parseFloat(min),
-      lte: parseFloat(max),
-    };
-  } else if (min) {
-    where.salePrice = {
-      gte: parseFloat(min),
-    };
-  } else if (max) {
-    where.salePrice = {
-      lte: parseFloat(max),
-    };
-  }
-  let products;
+import { db } from "@/lib/db";
+import { SearchQuerySchema } from "@/lib/schemas/search";
+
+export async function GET(request: NextRequest) {
   try {
-    if (searchTerm) {
-      products = await db.product.findMany({
-        where: {
-          OR: [
-            {
-              title: { contains: searchTerm, mode: "insensitive" },
-            },
-            {
-              category: {
-                title: { contains: searchTerm, mode: "insensitive" },
-              },
-            },
-            {
-              description: { contains: searchTerm, mode: "insensitive" },
-            },
-          ],
+    const queryInput = {
+      search: request.nextUrl.searchParams.get("search") ?? undefined,
+      sort: request.nextUrl.searchParams.get("sort") ?? undefined,
+      min: request.nextUrl.searchParams.get("min") ?? undefined,
+      max: request.nextUrl.searchParams.get("max") ?? undefined,
+      page: request.nextUrl.searchParams.get("page") ?? undefined,
+      pageSize: request.nextUrl.searchParams.get("pageSize") ?? undefined,
+      categoryId:
+        request.nextUrl.searchParams.get("categoryId") ??
+        request.nextUrl.searchParams.get("catId") ??
+        undefined,
+    };
+    const parsedQuery = SearchQuerySchema.safeParse(queryInput);
+
+    if (!parsedQuery.success) {
+      return NextResponse.json(
+        {
+          message: "Invalid query parameters",
+          errors: parsedQuery.error.flatten(),
         },
-      });
-    } else if (categoryId && page) {
-      products = await db.product.findMany({
-        where,
-        skip: (parseInt(page) - 1) * parseInt(pageSize),
-        take: parseInt(pageSize),
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-    } else if (categoryId && sortBy) {
-      products = await db.product.findMany({
-        where,
-        orderBy: {
-          salePrice: sortBy === "asc" ? "asc" : "desc",
-        },
-      });
-    } else if (categoryId) {
-      products = await db.product.findMany({
-        where,
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-    } else {
-      products = await db.product.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+        { status: 400 }
+      );
     }
+
+    const query = parsedQuery.data;
+    const where: Prisma.ProductWhereInput = {};
+
+    if (query.search) {
+      where.OR = [
+        {
+          title: { contains: query.search, mode: "insensitive" },
+        },
+        {
+          category: {
+            title: { contains: query.search, mode: "insensitive" },
+          },
+        },
+        {
+          description: { contains: query.search, mode: "insensitive" },
+        },
+      ];
+    }
+
+    if (query.categoryId) where.categoryId = query.categoryId;
+
+    if (query.min !== undefined || query.max !== undefined) {
+      where.salePrice = {};
+      if (query.min !== undefined) where.salePrice.gte = query.min;
+      if (query.max !== undefined) where.salePrice.lte = query.max;
+    }
+
+    const products = await db.product.findMany({
+      where,
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
+      orderBy: {
+        salePrice: query.sort,
+      },
+    });
+
     return NextResponse.json(products);
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        message: "Failed to Fetch Products",
-        error,
+        message: "Failed to fetch products",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

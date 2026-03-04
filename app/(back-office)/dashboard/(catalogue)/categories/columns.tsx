@@ -44,6 +44,15 @@ export const columns = [
     header: ({ column }) => <SortableColumn column={column} title="Title" />,
   },
   {
+    id: "categoryType",
+    header: "Type",
+    cell: ({ row }) => {
+      const parent = row.original.parent;
+      if (!parent) return <span>Main Category</span>;
+      return <span>Subcategory of {parent.title}</span>;
+    },
+  },
+  {
     accessorKey: "imageUrl",
     header: "Category Image",
     cell: ({ row }) => <ImageColumn row={row} accessorKey="imageUrl" />,

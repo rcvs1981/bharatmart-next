@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 import OrderCard from "@/components/Order/OrderCard";
 import { getData } from "@/lib/getData";
 import React from "react";

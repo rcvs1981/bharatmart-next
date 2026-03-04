@@ -1,59 +1,72 @@
-import db from "@/lib/db";
-import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(request) {
-  const searchTerm = request.nextUrl.searchParams.get("search");
-  const sortBy = request.nextUrl.searchParams.get("sort");
-  const min = request.nextUrl.searchParams.get("min");
-  const max = request.nextUrl.searchParams.get("max");
-  const page = request.nextUrl.searchParams.get("page") || 1;
-  const pageSize = 3;
-  console.log(sortBy);
-  let where = {
-    OR: [
-      {
-        title: { contains: searchTerm, mode: "insensitive" },
-      },
-      {
-        category: {
-          title: { contains: searchTerm, mode: "insensitive" },
-        },
-      },
-      {
-        description: { contains: searchTerm, mode: "insensitive" },
-      },
-    ],
-  };
-  if (min && max) {
-    where.salePrice = {
-      gte: parseFloat(min),
-      lte: parseFloat(max),
-    };
-  } else if (min) {
-    where.salePrice = {
-      gte: parseFloat(min),
-    };
-  } else if (max) {
-    where.salePrice = {
-      lte: parseFloat(max),
-    };
-  }
+import { db } from "@/lib/db";
+import { SearchQuerySchema } from "@/lib/schemas/search";
+
+export async function GET(request: NextRequest) {
   try {
+    const queryInput = {
+      search: request.nextUrl.searchParams.get("search") ?? undefined,
+      sort: request.nextUrl.searchParams.get("sort") ?? undefined,
+      min: request.nextUrl.searchParams.get("min") ?? undefined,
+      max: request.nextUrl.searchParams.get("max") ?? undefined,
+      page: request.nextUrl.searchParams.get("page") ?? undefined,
+      pageSize: request.nextUrl.searchParams.get("pageSize") ?? undefined,
+      categoryId: undefined,
+    };
+    const parsedQuery = SearchQuerySchema.safeParse(queryInput);
+
+    if (!parsedQuery.success) {
+      return NextResponse.json(
+        {
+          message: "Invalid query parameters",
+          errors: parsedQuery.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const query = parsedQuery.data;
+    const where: Prisma.ProductWhereInput = {};
+
+    if (query.search) {
+      where.OR = [
+        {
+          title: { contains: query.search, mode: "insensitive" },
+        },
+        {
+          category: {
+            title: { contains: query.search, mode: "insensitive" },
+          },
+        },
+        {
+          description: { contains: query.search, mode: "insensitive" },
+        },
+      ];
+    }
+
+    if (query.min !== undefined || query.max !== undefined) {
+      where.salePrice = {};
+      if (query.min !== undefined) where.salePrice.gte = query.min;
+      if (query.max !== undefined) where.salePrice.lte = query.max;
+    }
+
     const products = await db.product.findMany({
       where,
-      skip: (parseInt(page) - 1) * parseInt(pageSize),
-      take: parseInt(pageSize),
+      skip: (query.page - 1) * query.pageSize,
+      take: query.pageSize,
       orderBy: {
-        salePrice: sortBy === "asc" ? "asc" : "desc",
+        salePrice: query.sort,
       },
     });
+
     return NextResponse.json(products);
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        message: "Failed to Fetch Products",
-        error,
+        message: "Failed to fetch products",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

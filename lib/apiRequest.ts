@@ -1,73 +1,66 @@
 import toast from "react-hot-toast";
+import type { ZodType } from "zod";
 
-export async function makePostRequest(
-  setLoading,
-  endpoint,
-  data,
-  resourceName,
-  reset,
-  redirect
+import { apiClient, getApiErrorMessage } from "@/lib/http/client";
+
+type SetLoading = (value: boolean) => void;
+type Callback = () => void;
+
+function normalizeEndpoint(endpoint: string) {
+  const withLeadingSlash = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  return withLeadingSlash.replace(/^\/api\//, "/");
+}
+
+export async function makePostRequest<TRequest, TResponse = unknown>(
+  setLoading: SetLoading,
+  endpoint: string,
+  data: TRequest,
+  resourceName: string,
+  reset?: Callback,
+  redirect?: Callback,
+  schema?: ZodType<TResponse>
 ) {
   try {
     setLoading(true);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    const normalizedEndpoint = normalizeEndpoint(endpoint);
+    const response = await apiClient.post<unknown>(normalizedEndpoint, data);
+    const parsedResponse = schema ? schema.parse(response.data) : response.data;
 
-    const response = await fetch(`${baseUrl}/${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    const responseData = await response.json();
-    if (response.ok) {
-      setLoading(false);
-      toast.success(`New ${resourceName} Created Successfully`);
-      reset();
-      redirect();
-    } else {
-      setLoading(false);
-      if (response.status === 409) {
-        toast.error(`${responseData.message}`);
-      } else {
-        toast.error("Something Went wrong, Please Try Again");
-      }
-    }
+    toast.success(`New ${resourceName} Created Successfully`);
+    if (typeof reset === "function") reset();
+    if (typeof redirect === "function") redirect();
+    return parsedResponse as TResponse;
   } catch (error) {
+    toast.error(getApiErrorMessage(error));
+    return null;
+  } finally {
     setLoading(false);
-    console.log(error);
   }
 }
 
-export async function makePutRequest(
-  setLoading,
-  endpoint,
-  data,
-  resourceName,
-  redirect,
-  reset
+export async function makePutRequest<TRequest, TResponse = unknown>(
+  setLoading: SetLoading,
+  endpoint: string,
+  data: TRequest,
+  resourceName: string,
+  redirect?: Callback,
+  reset?: Callback,
+  schema?: ZodType<TResponse>
 ) {
   try {
     setLoading(true);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    const response = await fetch(`${baseUrl}/${endpoint}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-    if (response.ok) {
-      console.log(response);
-      setLoading(false);
-      toast.success(`${resourceName} Updated Successfully`);
-      redirect();
-    } else {
-      setLoading(false);
-      toast.error("Something Went wrong");
-    }
+    const normalizedEndpoint = normalizeEndpoint(endpoint);
+    const response = await apiClient.put<unknown>(normalizedEndpoint, data);
+    const parsedResponse = schema ? schema.parse(response.data) : response.data;
+
+    toast.success(`${resourceName} Updated Successfully`);
+    if (typeof reset === "function") reset();
+    if (typeof redirect === "function") redirect();
+    return parsedResponse as TResponse;
   } catch (error) {
+    toast.error(getApiErrorMessage(error));
+    return null;
+  } finally {
     setLoading(false);
-    console.log(error);
   }
 }

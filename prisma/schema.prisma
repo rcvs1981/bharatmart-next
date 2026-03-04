@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is your Prisma schema file.
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -7,25 +7,27 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  
 }
 
 // title, couponCode, expiryDate
 model Coupon {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  id         String   @id @default(cuid())
   title      String
   couponCode String
   expiryDate DateTime
   isActive   Boolean
-  user   User   @relation(fields: [vendorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  vendorId String @db.ObjectId
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  user     User   @relation(fields: [vendorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  vendorId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendorId])
 }
 
 model Banner {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(cuid())
   title     String
   link      String
   imageUrl  String
@@ -35,45 +37,43 @@ model Banner {
 }
 
 // Relationships
-
 // 1 to 1 Relationship User => Profile Relation
 // 1 to Many => Category => Product Relation
-// many to many => Market => Category
+// Market to Category is currently maintained via `Market.categoryIds`.
 
 model Category {
-  id          String     @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
-  slug        String     @unique
-  imageUrl    String?
-  description String?
-  isActive    Boolean
-  products    Product[]
-  
+  id            String     @id @default(cuid())
+  title         String
+  slug          String     @unique
+  imageUrl      String?
+  description   String?
+  isActive      Boolean
+  products      Product[]
+  parentId      String?
+  parent        Category?  @relation("CategoryToSubcategories", fields: [parentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  subcategories Category[] @relation("CategoryToSubcategories")
 
-  marketIds String[] @db.ObjectId
-  markets   Market[] @relation(fields: [marketIds], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
+  @@index([parentId])
 }
 
 model Market {
-  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  id          String   @id @default(cuid())
   title       String
-  slug        String  @unique
+  slug        String   @unique
   logoUrl     String?
   description String?
   isActive    Boolean
+  categoryIds String[]
 
-  categoryIds String[]   @db.ObjectId
-  categories  Category[] @relation(fields: [categoryIds], references: [id])
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Product {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  id             String   @id @default(cuid())
   title          String
   slug           String   @unique
   imageUrl       String?
@@ -92,19 +92,21 @@ model Product {
   productStock   Int?
   qty            Int?
   tags           String[]
-  categoryId     String   @db.ObjectId
-  category       Category @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String @db.ObjectId
+  userId String
 
   orderItems OrderItem[]
   sales      Sale[]
   createdAt  DateTime    @default(now())
-  updatedAt  DateTime?   @updatedAt
+  updatedAt  DateTime    @updatedAt
+
+  @@index([categoryId])
+  @@index([userId])
 }
-
-
 
 enum UserRole {
   ADMIN
@@ -122,49 +124,51 @@ enum OrderStatus {
 }
 
 model User {
-  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  id                String         @id @default(cuid())
   name              String?
   email             String?        @unique
   password          String
   emailVerified     Boolean        @default(false)
   products          Product[]
-  coupons          Coupon[]
+  coupons           Coupon[]
   role              UserRole       @default(USER)
-  plan             String?        
+  plan              String?
   verificationToken String?
   status            Boolean        @default(false)
   farmerProfile     FarmerProfile?
   profile           UserProfile? // Link to user profile
-  orders            Order[] //User can have multiple Orders
+  orders            Order[] // User can have multiple Orders
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
-  sales              Sale[]
+  sales             Sale[]
 }
 
 // Model for normal user profile
 model UserProfile {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String    @unique @db.ObjectId
-   // Personal Details
-  name     String?
-  firstName     String?
-  lastName      String?
-  email         String?
-  username         String?
-  phone         String?
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Personal Details
+  name      String?
+  firstName String?
+  lastName  String?
+  email     String?
+  username  String?
+  phone     String?
+
   // shipping details
   streetAddress String?
   city          String?
   country       String?
   district      String?
-  dateOfBirth DateTime?
-  profileImage String?
+  dateOfBirth   DateTime?
+  profileImage  String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model FarmerProfile {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  id                 String   @id @default(cuid())
   code               String?
   contactPerson      String?
   contactPersonPhone String?
@@ -181,48 +185,53 @@ model FarmerProfile {
   mainCrop           String?
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  userId String @unique @db.ObjectId
+  userId String @unique
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Order {
-  id            String  @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String  @db.ObjectId
+  id     String @id @default(cuid())
+  userId String
+
   // Personal Details
-  firstName     String
-  lastName      String
-  email         String
-  phone         String
+  firstName String
+  lastName  String
+  email     String
+  phone     String
+
   // shipping details
   streetAddress String?
   city          String?
   country       String?
   apartment     String?
-      state     String?
-      zip       String?
+  state         String?
+  zip           String?
   shippingCost  Float?
   orderNumber   String?
-  //Payment Method
+
+  // Payment Method
   paymentMethod String
 
   // Order Items
   orderItems OrderItem[]
 
   // Status
-  orderStatus OrderStatus @default(PROCESSING) // Set PROCESSING as the default value
+  orderStatus OrderStatus @default(PROCESSING)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   sales       Sale[]
+
+  @@index([userId])
 }
 
 model OrderItem {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId   String   @db.ObjectId
-  productId String   @db.ObjectId
-  vendorId  String   @db.ObjectId
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  vendorId  String
   imageUrl  String?
   title     String?
   quantity  Int
@@ -231,13 +240,17 @@ model OrderItem {
   updatedAt DateTime @updatedAt
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([vendorId])
 }
 
 model Sale {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId      String   @db.ObjectId
-  productId    String   @db.ObjectId
-  vendorId     String   @db.ObjectId
+  id           String   @id @default(cuid())
+  orderId      String
+  productId    String
+  vendorId     String
   total        Float
   productTitle String
   productImage String
@@ -248,4 +261,8 @@ model Sale {
   order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   vendor       User     @relation(fields: [vendorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([vendorId])
 }

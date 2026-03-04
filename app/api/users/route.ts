@@ -1,105 +1,139 @@
-import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-import db from "@/lib/db";
-import { v4 as uuidv4 } from "uuid";
 import base64url from "base64url";
-import { Resend } from "resend";
-// import { EmailTemplate } from "@/components/email-template";
-export async function POST(request) {
+import { UserRole } from "@prisma/client";
+import { NextRequest, NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
+
+import { db } from "@/lib/db";
+import { UserCreateInputSchema, UserQuerySchema } from "@/lib/schemas/user";
+
+const userPublicSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  plan: true,
+  status: true,
+  emailVerified: true,
+  createdAt: true,
+  updatedAt: true,
+  profile: true,
+  farmerProfile: true,
+};
+
+function normalizeRole(role: string): UserRole {
+  if (role === "SELLER") return "FARMER";
+  return role as UserRole;
+}
+
+export async function POST(request: NextRequest) {
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    //extract the credentials
-    const { name, email, password, role, plan } = await request.json();
-    //Check if the user Already exists in the db
+    const payload = await request.json();
+    const parsedInput = UserCreateInputSchema.safeParse(payload);
+
+    if (!parsedInput.success) {
+      return NextResponse.json(
+        {
+          message: "Invalid user payload",
+          errors: parsedInput.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const data = parsedInput.data;
+    const role = normalizeRole(data.role);
     const existingUser = await db.user.findUnique({
       where: {
-        email,
+        email: data.email,
       },
+      select: { id: true },
     });
+
     if (existingUser) {
       return NextResponse.json(
         {
           data: null,
-          message: `User with this email ( ${email})  already exists in the Database`,
+          message: `User with email (${data.email}) already exists in the database`,
         },
         { status: 409 }
       );
     }
-    // Encrypt the Password =>bcrypt
-    const hashedPassword = await bcrypt.hash(password, 10);
-    // Generate a random UUID (version 4)
-    const rawToken = uuidv4();
-    console.log(rawToken);
-    // Encode the token using Base64 URL-safe format
-    const token = base64url.encode(rawToken);
-    // Create a User in the DB
+
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const token = base64url.encode(uuidv4());
+
     const newUser = await db.user.create({
       data: {
-        name,
-        email,
+        name: data.name,
+        email: data.email,
         password: hashedPassword,
         role,
-        plan,
+        plan: data.plan ?? null,
         verificationToken: token,
       },
+      select: userPublicSelect,
     });
-    console.log(newUser);
-    // SEND THE EMAIL IF USER ROLE == FARMER
-    // if (role === "FARMER") {
-    //   //Send an Email with the Token on the link as a search param
-    //   const userId = newUser.id;
-    //   const linkText = "Verify Account";
-    //   const redirectUrl = `onboarding/${userId}?token=${token}`;
-    //   const description =
-    //     "Thank you, for Creating an Account with Us. We request you to click  on the link Below in order to Complete your onboarding Process. Thankyou";
-    //   const subject = "Account Verification - Limi Ecommerce";
-    //   const sendMail = await resend.emails.send({
-    //     from: "Desishub <info@jazzafricaadventures.com>",
-    //     to: email,
-    //     subject: subject,
-    //     react: EmailTemplate({
-    //       name,
-    //       redirectUrl,
-    //       linkText,
-    //       description,
-    //       subject,
-    //     }),
-    //   });
-    //   console.log(sendMail);
-    //   //Upon Click redirect them to the login
-    // }
+
     return NextResponse.json(
       {
         data: newUser,
-        message: "User Created Successfully",
+        message: "User created successfully",
       },
       { status: 201 }
     );
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        error,
-        message: "Server Error: Something went wrong",
+        message: "Server error: failed to create user",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );
   }
 }
-export async function GET(request) {
+
+export async function GET(request: NextRequest) {
   try {
+    const queryInput = {
+      role: request.nextUrl.searchParams.get("role") ?? undefined,
+      status: request.nextUrl.searchParams.get("status") ?? undefined,
+    };
+    const parsedQuery = UserQuerySchema.safeParse(queryInput);
+
+    if (!parsedQuery.success) {
+      return NextResponse.json(
+        {
+          message: "Invalid query parameters",
+          errors: parsedQuery.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const query = parsedQuery.data;
+    const where: {
+      role?: UserRole;
+      status?: boolean;
+    } = {};
+
+    if (query.role) where.role = normalizeRole(query.role);
+    if (query.status) where.status = query.status === "true";
+
     const users = await db.user.findMany({
+      where,
       orderBy: {
         createdAt: "desc",
       },
+      select: userPublicSelect,
     });
+
     return NextResponse.json(users);
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        message: "Failed to Fetch Users",
-        error,
+        message: "Failed to fetch users",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

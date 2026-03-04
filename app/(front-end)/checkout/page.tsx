@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 import CartBanner from "@/components/Checkout/CartBanner";
 import StepForm from "@/components/Checkout/StepForm";
 import Steps from "@/components/Checkout/Steps";

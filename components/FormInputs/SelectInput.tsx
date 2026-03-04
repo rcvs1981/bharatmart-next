@@ -1,5 +1,19 @@
 import React from "react";
 
+type SelectOption = {
+  id: string;
+  title: string;
+};
+
+type SelectInputProps = {
+  label: string;
+  name: string;
+  register: (...args: any[]) => any;
+  className?: string;
+  options?: SelectOption[];
+  multiple?: boolean;
+};
+
 export default function SelectInput({
   label,
   name,
@@ -7,7 +21,7 @@ export default function SelectInput({
   className = "sm:col-span-2",
   options = [],
   multiple = false,
-}) {
+}: SelectInputProps) {
   return (
     <div className={className}>
       <label

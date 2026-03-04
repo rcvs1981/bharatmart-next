@@ -1,151 +1,118 @@
-import db from "@/lib/db";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
-export async function POST(request) {
+import { db } from "@/lib/db";
+import { CategoryCreateInputSchema } from "@/lib/schemas/category";
+
+export async function POST(request: NextRequest) {
   try {
-    const { title, slug, imageUrl, description, isActive } =
-      await request.json();
+    const payload = await request.json();
+    const parsedInput = CategoryCreateInputSchema.safeParse(payload);
 
+    if (!parsedInput.success) {
+      return NextResponse.json(
+        {
+          message: "Invalid category payload",
+          errors: parsedInput.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const data = parsedInput.data;
     const existingCategory = await db.category.findUnique({
       where: {
-        slug,
+        slug: data.slug,
       },
     });
+
     if (existingCategory) {
       return NextResponse.json(
         {
           data: null,
-          message: `Category ( ${title})  already exists in the Database`,
+          message: `Category (${data.title}) already exists in the database`,
         },
         { status: 409 }
       );
     }
+
+    if (data.parentId) {
+      const parentCategory = await db.category.findUnique({
+        where: { id: data.parentId },
+      });
+
+      if (!parentCategory) {
+        return NextResponse.json(
+          {
+            message: "Parent category not found",
+          },
+          { status: 404 }
+        );
+      }
+    }
+
+    const createData: Prisma.CategoryUncheckedCreateInput = {
+      title: data.title,
+      slug: data.slug,
+      imageUrl: data.imageUrl ?? null,
+      description: data.description ?? null,
+      isActive: data.isActive,
+      parentId: data.parentId ?? null,
+    };
+
     const newCategory = await db.category.create({
-      data: { title, slug, imageUrl, description, isActive },
+      data: createData,
+      include: {
+        parent: {
+          select: { id: true, title: true, slug: true },
+        },
+      },
     });
-    return NextResponse.json(newCategory);
+
+    return NextResponse.json(newCategory, { status: 201 });
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        message: "Failed to create Category",
-        error,
+        message: "Failed to create category",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );
   }
 }
-export async function GET(request) {
+
+export async function GET(request: NextRequest) {
   try {
+    const rootsOnly = request.nextUrl.searchParams.get("roots") === "true";
+    const where: Prisma.CategoryWhereInput | undefined = rootsOnly
+      ? { parentId: null }
+      : undefined;
+
     const categories = await db.category.findMany({
+      where,
       orderBy: {
         createdAt: "desc",
       },
       include: {
         products: true,
+        parent: {
+          select: { id: true, title: true, slug: true },
+        },
+        subcategories: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            products: true,
+          },
+        },
       },
     });
+
     return NextResponse.json(categories);
   } catch (error) {
-    console.log(error);
     return NextResponse.json(
       {
-        message: "Failed to Fetch Category",
-        error,
-      },
-      { status: 500 }
-    );
-  }
-}
-import db from "@/lib/db";
-import { NextResponse } from "next/server";
-
-export async function GET(request, { params: { id } }) {
-  try {
-    const category = await db.category.findUnique({
-      where: {
-        id,
-      },
-      include: {
-        products: true,
-      },
-    });
-    return NextResponse.json(category);
-  } catch (error) {
-    console.log(error);
-    return NextResponse.json(
-      {
-        message: "Failed to Fetch Category",
-        error,
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(request, { params: { id } }) {
-  try {
-    const existingCategory = await db.category.findUnique({
-      where: {
-        id,
-      },
-    });
-    if (!existingCategory) {
-      return NextResponse.json(
-        {
-          data: null,
-          message: "Category Not Found",
-        },
-        { status: 404 }
-      );
-    }
-    const deletedCategory = await db.category.delete({
-      where: {
-        id,
-      },
-    });
-    return NextResponse.json(deletedCategory);
-  } catch (error) {
-    console.log(error);
-    return NextResponse.json(
-      {
-        message: "Failed to Delete Category",
-        error,
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(request, { params: { id } }) {
-  try {
-    const { title, slug, imageUrl, description, isActive } =
-      await request.json();
-    const existingCategory = await db.category.findUnique({
-      where: {
-        id,
-      },
-    });
-    if (!existingCategory) {
-      return NextResponse.json(
-        {
-          data: null,
-          message: `Not Found`,
-        },
-        { status: 404 }
-      );
-    }
-    const updatedCategory = await db.category.update({
-      where: { id },
-      data: { title, slug, imageUrl, description, isActive },
-    });
-    return NextResponse.json(updatedCategory);
-  } catch (error) {
-    console.log(error);
-    return NextResponse.json(
-      {
-        message: "Failed to Update Category",
-        error,
+        message: "Failed to fetch categories",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

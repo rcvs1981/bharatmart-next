@@ -1,13 +1,23 @@
-export async function getData(endpoint) {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    // console.log(`${baseUrl}/api/${endpoint}`);
-    const response = await fetch(`${baseUrl}/api/${endpoint}`, {
-      cache: "no-store",
-    });
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.log(error);
-  }
+import { ZodType } from "zod";
+
+import { apiClient } from "@/lib/http/client";
+
+function normalizeEndpoint(endpoint: string) {
+  const withLeadingSlash = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  return withLeadingSlash.replace(/^\/api\//, "/");
+}
+
+export async function getData<T = unknown>(
+  endpoint: string,
+  schema?: ZodType<T>
+): Promise<T> {
+  const normalizedEndpoint = normalizeEndpoint(endpoint);
+  const { data } = await apiClient.get<unknown>(normalizedEndpoint, {
+    headers: {
+      "Cache-Control": "no-store",
+    },
+  });
+
+  if (schema) return schema.parse(data);
+  return data as T;
 }

@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 import CustomDataTable from "@/components/backoffice/CustomDataTable";
 import DashboardCharts from "@/components/backoffice/DashboardCharts";
 import FarmerDashboard from "@/components/backoffice/FarmerDashboard";
