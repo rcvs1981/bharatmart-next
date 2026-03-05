@@ -1,11 +1,14 @@
-export function generateSlug(title) {
+export function generateSlug(title: string): string {
   const slug = title
-    .toLowerCase() // Convert the title to lowercase
-    .replace(/\s+/g, "-") // Replace spaces with dashes
-    .replace(/[^\w\-]+/g, "") // Remove non-word characters except dashes
-    .replace(/\-\-+/g, "-") // Replace multiple consecutive dashes with a single dash
-    .replace(/^\-+/, "") // Remove dashes from the beginning
-    .replace(/\-+$/, ""); // Remove dashes from the end
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]+/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
 
-  return slug;
+  return slug || "untitled";
 }

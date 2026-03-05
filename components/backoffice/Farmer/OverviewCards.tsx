@@ -1,40 +1,56 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import React from "react";
 
-export default function OverviewCards({ sales, products }) {
+type SaleSummary = {
+  total?: number | string | null;
+};
+
+type OverviewCardsProps = {
+  sales?: SaleSummary[];
+  products?: unknown[];
+};
+
+export default function OverviewCards({
+  sales = [],
+  products = [],
+}: OverviewCardsProps) {
   const productsCount = products.length.toString().padStart(2, "0");
   const salesCount = sales.length.toString().padStart(2, "0");
-  const totalSales = sales.reduce((acc, item) => acc + item.total, 0);
+  const totalSales = sales.reduce((acc, item) => {
+    const saleTotal = Number(item.total ?? 0);
+    return acc + (Number.isFinite(saleTotal) ? saleTotal : 0);
+  }, 0);
+  const formattedTotalSales = totalSales.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
   const analytics = [
     {
       title: "Products",
       count: productsCount,
-      unit: "",
       link: "/dashboard/products",
-      icon: "",
     },
     {
       title: "Sales",
       count: salesCount,
-      unit: "",
       link: "/dashboard/sales",
-      icon: "",
     },
     {
       title: "Total Revenue",
-      count: totalSales,
-      unit: "",
+      count: formattedTotalSales,
       link: "/dashboard/sales",
-      icon: "",
     },
   ];
+
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-      {analytics.map((item, i) => {
+      {analytics.map((item) => {
         return (
           <div
-            key={i}
+            key={item.title}
             className="flex flex-col bg-white border shadow-sm rounded-xl dark:bg-slate-900 dark:border-gray-800"
           >
             <div className="p-4 md:p-5 flex justify-between gap-x-3">
@@ -45,7 +61,6 @@ export default function OverviewCards({ sales, products }) {
                 <div className="mt-1 flex items-center gap-x-2">
                   <h3 className="mt-1 text-xl font-medium text-gray-800 dark:text-gray-200">
                     {item.count}
-                    {item.unit}
                   </h3>
                 </div>
               </div>
@@ -58,9 +73,9 @@ export default function OverviewCards({ sales, products }) {
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
                   <path d="M5 22h14" />
                   <path d="M5 2h14" />

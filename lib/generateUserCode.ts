@@ -1,12 +1,15 @@
-export function generateUserCode(prefix, fullName) {
-  // Extract initials from the full name
-  const initials = fullName
-    .split(" ")
-    .map((name) => name[0])
-    .join("")
-    .toUpperCase();
+export function generateUserCode(prefix: string, fullName: string): string {
+  const normalizedPrefix = prefix.trim().toUpperCase() || "USR";
 
-  // Generate a timestamp-based code
+  const initials =
+    fullName
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((name) => name.charAt(0))
+      .join("")
+      .toUpperCase() || "NA";
+
   const now = new Date();
   const timestampCode = `${now.getFullYear()}${(now.getMonth() + 1)
     .toString()
@@ -16,10 +19,7 @@ export function generateUserCode(prefix, fullName) {
     .padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now
     .getSeconds()
     .toString()
-    .padStart(2, "0")}`;
+    .padStart(2, "0")}${now.getMilliseconds().toString().padStart(3, "0")}`;
 
-  // Combine prefix, initials, and timestamp code to form the unique user code
-  const userCode = `${prefix}-${initials}-${timestampCode}`;
-
-  return userCode;
+  return `${normalizedPrefix}-${initials}-${timestampCode}`;
 }

@@ -1,5 +1,15 @@
 import axios, { AxiosError, type AxiosInstance } from "axios";
 
+function resolveRequestTimeoutMs() {
+  const parsedTimeout = Number.parseInt(process.env.API_TIMEOUT_MS ?? "", 10);
+
+  if (!Number.isNaN(parsedTimeout) && parsedTimeout > 0) {
+    return parsedTimeout;
+  }
+
+  return 30_000;
+}
+
 function normalizeApiBaseUrl(baseUrl: string) {
   const trimmed = baseUrl.replace(/\/+$/, "");
   return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
@@ -23,7 +33,7 @@ function resolveWebBaseUrl() {
 export function createApiClient(baseUrl: string): AxiosInstance {
   return axios.create({
     baseURL: normalizeApiBaseUrl(baseUrl),
-    timeout: 15_000,
+    timeout: resolveRequestTimeoutMs(),
     headers: {
       "Content-Type": "application/json",
     },
@@ -33,7 +43,7 @@ export function createApiClient(baseUrl: string): AxiosInstance {
 
 export const apiClient = axios.create({
   baseURL: resolveWebBaseUrl(),
-  timeout: 15_000,
+  timeout: resolveRequestTimeoutMs(),
   headers: {
     "Content-Type": "application/json",
   },

@@ -1,13 +1,21 @@
 import { Pencil } from "lucide-react";
 import Link from "next/link";
-import React from "react";
 
-export default function EditBtn({ editEndpoint, title }) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+type EditBtnProps = {
+  editEndpoint: string;
+  title: string;
+};
+
+function normalizeEditEndpoint(editEndpoint: string): string {
+  return editEndpoint.replace(/^\/+/, "").replace(/^dashboard\/+/, "");
+}
+
+export default function EditBtn({ editEndpoint, title }: EditBtnProps) {
+  const normalizedEndpoint = normalizeEditEndpoint(editEndpoint);
 
   return (
     <Link
-      href={`${baseUrl}/dashboard/${editEndpoint}`}
+      href={`/dashboard/${normalizedEndpoint}`}
       className="flex items-center text-lime-600"
     >
       <Pencil className="mr-2 w-4 h-4" />

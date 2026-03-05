@@ -1,19 +1,25 @@
 "use client";
 import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import { useState } from "react";
 import toast from "react-hot-toast";
 import Swal from "sweetalert2";
 
-export default function DeleteBtn({ endpoint, title }) {
+type DeleteBtnProps = {
+  endpoint: string;
+  title: string;
+};
+
+function normalizeDeleteEndpoint(endpoint: string): string {
+  return endpoint.replace(/^\/+/, "").replace(/^api\/+/, "");
+}
+
+export default function DeleteBtn({ endpoint, title }: DeleteBtnProps) {
   const [loading, setLoading] = useState(false);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
   const router = useRouter();
-  console.log(endpoint);
-  // const confirmed = confirm("Are you sure?");
+
   async function handleDelete() {
-    setLoading(true);
-    Swal.fire({
+    const result = await Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
       icon: "warning",
@@ -21,25 +27,40 @@ export default function DeleteBtn({ endpoint, title }) {
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
       confirmButtonText: "Yes, delete it!",
-    }).then(async (result) => {
-      //localhost:3000/api/categories/1233
-      if (result.isConfirmed) {
-        console.log("Yes have been Clicked");
-        const res = await fetch(`${baseUrl}/api/${endpoint}`, {
-          method: "DELETE",
-        });
-        console.log(res);
-        if (res.ok) {
-          router.refresh();
-          setLoading(false);
-          toast.success(`${title} Deleted Successfully`);
-        }
-      } else {
-        console.log("No has been Clicked");
-        setLoading(false);
-      }
     });
+
+    if (!result.isConfirmed) return;
+
+    setLoading(true);
+    try {
+      const normalizedEndpoint = normalizeDeleteEndpoint(endpoint);
+      const response = await fetch(`/api/${normalizedEndpoint}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const fallbackMessage = `Failed to delete ${title}`;
+        let errorMessage = fallbackMessage;
+        try {
+          const payload = (await response.json()) as { message?: string };
+          if (payload?.message) errorMessage = payload.message;
+        } catch {
+          // keep fallback message when response body is not JSON
+        }
+        toast.error(errorMessage);
+        return;
+      }
+
+      router.refresh();
+      toast.success(`${title} deleted successfully`);
+    } catch (error) {
+      toast.error(`Failed to delete ${title}`);
+      console.error("Delete request failed:", error);
+    } finally {
+      setLoading(false);
+    }
   }
+
   return (
     <>
       {loading ? (
@@ -70,6 +91,7 @@ export default function DeleteBtn({ endpoint, title }) {
       ) : (
         <button
           onClick={handleDelete}
+          disabled={loading}
           className="font-medium text-red-600 dark:text-red-500 flex items-center space-x-1"
         >
           <Trash2 className="w-4 h-4" />

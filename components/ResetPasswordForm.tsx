@@ -1,54 +1,71 @@
 "use client";
-import { signIn, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+
+type ResetPasswordFormInput = {
+  password: string;
+};
+
 export default function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const userId = searchParams.get("id");
+  const token = searchParams.get("token");
   const {
     register,
     handleSubmit,
-    reset,
     formState: { errors },
-  } = useForm();
+  } = useForm<ResetPasswordFormInput>();
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(data) {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    const id = searchParams.get("id");
-    data.id = id;
-    console.log(data);
+  async function onSubmit(data: ResetPasswordFormInput) {
+    if (!userId || !token) {
+      toast.error("Invalid or expired password reset link");
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/api/users/update-password`, {
+      const response = await fetch("/api/users/update-password", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          id: userId,
+          token,
+        }),
       });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { message?: string }
+        | null;
+
       if (response.ok) {
-        // await signOut();
-        setLoading(false);
         router.push("/login");
-        toast.success("Password Updated Successfully");
+        toast.success(payload?.message ?? "Password updated successfully");
       } else {
-        setLoading(false);
-        toast.error("Something Went wrong");
+        toast.error(payload?.message ?? "Something went wrong");
       }
     } catch (error) {
-      setLoading(false);
       console.error("Network Error:", error);
-      toast.error("Its seems something is wrong with your Network");
+      toast.error("It seems something is wrong with your network");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 " action="#">
+      {(!userId || !token) && (
+        <p className="text-sm text-red-600">
+          Invalid password reset link. Request a new one from forgot password.
+        </p>
+      )}
       <div>
         <label
           htmlFor="email"
@@ -98,6 +115,7 @@ export default function ResetPasswordForm() {
         </button>
       ) : (
         <button
+          disabled={!userId || !token}
           type="submit"
           className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
         >

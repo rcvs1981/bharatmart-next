@@ -1,50 +1,52 @@
 "use client";
 import { HiInformationCircle } from "react-icons/hi";
 import { Alert } from "flowbite-react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import { FaGoogle } from "react-icons/fa";
-import { FaGithub } from "react-icons/fa";
+
+type ForgotPasswordFormInput = {
+  email: string;
+};
+
 export default function ForgotPasswordForm() {
-  const router = useRouter();
   const [showNotification, setShowNotification] = useState(false);
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm();
+  } = useForm<ForgotPasswordFormInput>();
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(data) {
-    console.log(data);
+  async function onSubmit(data: ForgotPasswordFormInput) {
     try {
       setLoading(true);
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-      const response = await fetch(`${baseUrl}/api/users/forgot-password`, {
+      const response = await fetch("/api/users/forgot-password", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { message?: string }
+        | null;
+
       if (response.ok) {
-        setLoading(false);
         setShowNotification(true);
         reset();
-        toast.success("Password reset link sent Successfully");
+        toast.success(payload?.message ?? "Password reset link sent successfully");
       } else {
-        setLoading(false);
-        toast.error("Something Went wrong");
+        toast.error(payload?.message ?? "Something went wrong");
       }
     } catch (error) {
-      setLoading(false);
       console.error("Network Error:", error);
-      toast.error("Its seems something is wrong with your Network");
+      toast.error("It seems something is wrong with your network");
+    } finally {
+      setLoading(false);
     }
   }
 

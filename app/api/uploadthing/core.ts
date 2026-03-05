@@ -56,3 +56,5 @@ export const ourFileRouter = {
       return { uploadedBy: "JB" };
     }),
 };
+
+export type OurFileRouter = typeof ourFileRouter;

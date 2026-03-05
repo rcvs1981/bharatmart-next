@@ -1,40 +1,69 @@
-import {db}  from "@/lib/db";
-import { NextResponse } from "next/server";
 import bcrypt from "bcrypt";
-export async function PUT(request) {
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+import { db } from "@/lib/db";
+
+const UpdatePasswordInputSchema = z.object({
+  id: z.string().trim().min(1),
+  token: z.string().trim().min(1),
+  password: z.string().min(6),
+});
+
+export async function PUT(request: NextRequest) {
   try {
-    const { password, id } = await request.json();
-    const user = await db.user.findUnique({
+    const parsedBody = UpdatePasswordInputSchema.safeParse(await request.json());
+    if (!parsedBody.success) {
+      return NextResponse.json(
+        {
+          message: "Invalid request payload",
+          errors: parsedBody.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const { password, id, token } = parsedBody.data;
+    const user = await db.user.findFirst({
       where: {
         id,
+        verificationToken: token,
       },
+      select: { id: true },
     });
+
     if (!user) {
       return NextResponse.json(
         {
           data: null,
-          message: "No User Found",
+          message: "Invalid or expired reset link",
         },
-        { status: 404 }
+        { status: 400 }
       );
     }
-    // Encrypt the Password =>bcrypt
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const updatedUser = await db.user.update({
+    await db.user.update({
       where: {
-        id,
+        id: user.id,
       },
       data: {
         password: hashedPassword,
+        verificationToken: null,
       },
     });
-    return NextResponse.json(updatedUser);
-  } catch (error) {
-    console.log(error);
+
     return NextResponse.json(
       {
-        message: "Failed to Update User",
-        error,
+        message: "Password updated successfully",
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        message: "Failed to update user password",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );

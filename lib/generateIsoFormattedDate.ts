@@ -1,8 +1,12 @@
-export function generateIsoFormattedDate(normalDate) {
-  // Convert the date string to a JavaScript Date object
-  const dateObject = new Date(normalDate);
-  // Format the date as a string in ISO 8601 format
-  const isoFormattedDate = dateObject.toISOString();
+export function generateIsoFormattedDate(
+  normalDate: string | number | Date
+): string {
+  const parsedDate =
+    typeof normalDate === "string" ? new Date(normalDate.trim()) : new Date(normalDate);
 
-  return isoFormattedDate;
+  if (Number.isNaN(parsedDate.getTime())) {
+    throw new Error("Invalid date provided to generateIsoFormattedDate");
+  }
+
+  return parsedDate.toISOString();
 }

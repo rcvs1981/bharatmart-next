@@ -1,17 +1,26 @@
-const { createSlice } = require("@reduxjs/toolkit");
-const initialState = {
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+
+type OnboardingState = {
+  currentStep: number;
+  onboardingFormData: Record<string, unknown>;
+};
+
+const initialState: OnboardingState = {
   currentStep: 1,
   onboardingFormData: {},
 };
+
 const onboardingSlice = createSlice({
   name: "onboarding",
   initialState,
   reducers: {
-    // Functions to used to manipulate the state
-    setCurrentStep: (state, action) => {
+    setCurrentStep: (state, action: PayloadAction<number>) => {
       state.currentStep = action.payload;
     },
-    updateOnboardingFormData: (state, action) => {
+    updateOnboardingFormData: (
+      state,
+      action: PayloadAction<Record<string, unknown>>
+    ) => {
       state.onboardingFormData = {
         ...state.onboardingFormData,
         ...action.payload,

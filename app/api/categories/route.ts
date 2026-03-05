@@ -4,6 +4,17 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { CategoryCreateInputSchema } from "@/lib/schemas/category";
 
+const PRODUCT_CARD_SELECT = {
+  id: true,
+  title: true,
+  slug: true,
+  imageUrl: true,
+  productPrice: true,
+  salePrice: true,
+  userId: true,
+  qty: true,
+} satisfies Prisma.ProductSelect;
+
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json();
@@ -83,28 +94,70 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const searchParams = request.nextUrl.searchParams;
     const rootsOnly = request.nextUrl.searchParams.get("roots") === "true";
+    const withProducts = searchParams.get("withProducts") === "true";
+    const withSubcategories = searchParams.get("withSubcategories") === "true";
+    const parsedProductLimit = Number.parseInt(
+      searchParams.get("productLimit") ?? "",
+      10
+    );
+    const productLimit =
+      Number.isNaN(parsedProductLimit) || parsedProductLimit <= 0
+        ? undefined
+        : Math.min(parsedProductLimit, 24);
     const where: Prisma.CategoryWhereInput | undefined = rootsOnly
       ? { parentId: null }
       : undefined;
+
+    const include: Prisma.CategoryInclude = {
+      parent: {
+        select: { id: true, title: true, slug: true },
+      },
+    };
+
+    if (withProducts) {
+      include.products = {
+        select: PRODUCT_CARD_SELECT,
+        orderBy: { createdAt: "desc" },
+        ...(productLimit ? { take: productLimit } : {}),
+      };
+    }
+
+    if (withSubcategories) {
+      include.subcategories = withProducts
+        ? {
+            orderBy: { createdAt: "desc" },
+            include: {
+              products: {
+                select: PRODUCT_CARD_SELECT,
+                orderBy: { createdAt: "desc" },
+                ...(productLimit ? { take: productLimit } : {}),
+              },
+            },
+          }
+        : {
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              imageUrl: true,
+              description: true,
+              isActive: true,
+              parentId: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          };
+    }
 
     const categories = await db.category.findMany({
       where,
       orderBy: {
         createdAt: "desc",
       },
-      include: {
-        products: true,
-        parent: {
-          select: { id: true, title: true, slug: true },
-        },
-        subcategories: {
-          orderBy: { createdAt: "desc" },
-          include: {
-            products: true,
-          },
-        },
-      },
+      include,
     });
 
     return NextResponse.json(categories);

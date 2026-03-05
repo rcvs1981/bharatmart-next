@@ -7,17 +7,18 @@ import React from "react";
 
 export default async function page({ params: { slug } }) {
   const market = await getData(`markets/details/${slug}`);
-  const marketCategoryIds = market.categoryIds;
+  const marketCategoryIds = market.categoryIds ?? [];
   // console.log(marketCategoryIds);
 
-  const categoriesData = await getData("categories");
+  const categoriesData = await getData(
+    "categories?withProducts=true&productLimit=12"
+  );
   const categories = categoriesData.filter((category) => {
     return category.products.length > 3;
   });
   const marketCategories = categories.filter((category) =>
     marketCategoryIds.includes(category.id)
   );
-  console.log(marketCategories);
   return (
     <>
       <Breadcrumb />

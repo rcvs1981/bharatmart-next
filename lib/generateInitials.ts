@@ -1,15 +1,14 @@
-export function generateInitials(name) {
-  // Split the name into words
-  const words = name.split(" ");
+export function generateInitials(name?: string | null): string {
+  const words = (name ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
 
-  // Initialize variables to store initials
-  let firstInitial = words[0][0].toUpperCase();
-  let secondInitial = "";
-  // Get the second initial from the last word
-  if (words.length > 1) {
-    secondInitial = words[1][0].toUpperCase();
-  }
+  if (words.length === 0) return "NA";
 
-  // Return the generated initials
-  return firstInitial + secondInitial;
+  const firstInitial = words[0]?.charAt(0).toUpperCase() ?? "";
+  const lastInitial =
+    words.length > 1 ? words[words.length - 1]?.charAt(0).toUpperCase() ?? "" : "";
+
+  return `${firstInitial}${lastInitial}` || "NA";
 }

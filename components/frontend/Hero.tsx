@@ -7,11 +7,15 @@ import { CircleDollarSign, FolderSync, HelpCircle } from "lucide-react";
 import SidebarCategories from "./SidebarCategories";
 import { getData } from "@/lib/getData";
 
-export default async function Hero() {
+type HeroProps = {
+  categories?: any[];
+};
+
+export default async function Hero({ categories = [] }: HeroProps) {
   const banners = await getData("banners");
   return (
     <div className="grid grid-cols-12 gap-8 mb-6 ">
-      <SidebarCategories />
+      <SidebarCategories categories={categories} />
       <div className="col-span-full sm:col-span-7 bg-blue-600 rounded-md">
         <HeroCarousel banners={banners} />
       </div>

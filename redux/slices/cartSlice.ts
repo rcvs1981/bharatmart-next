@@ -1,74 +1,86 @@
-// Create a slice
-//Create reducers
-//export the reducer and reducers
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-const { createSlice } = require("@reduxjs/toolkit");
+export type CartItem = {
+  id: string;
+  title: string;
+  salePrice: number;
+  imageUrl: string;
+  qty: number;
+  vendorId: string;
+};
 
-// Get initial state from localStorage if available
-const initialState =
-  (typeof window !== "undefined" && JSON.parse(localStorage.getItem("cart"))) ||
-  [];
+type AddToCartPayload = {
+  id: string;
+  title: string;
+  salePrice: number;
+  imageUrl: string;
+  userId: string;
+};
+
+function readCartFromStorage(): CartItem[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = localStorage.getItem("cart");
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as CartItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistCart(state: CartItem[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("cart", JSON.stringify(state));
+  }
+}
+
+const initialState: CartItem[] = readCartFromStorage();
+
 const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
-    addToCart: (state, action) => {
-      const {
-        id,
-        title,
-        salePrice,
-        imageUrl,
-        userId: vendorId,
-      } = action.payload;
-      // Check if the item already exists in the cart
+    addToCart: (state, action: PayloadAction<AddToCartPayload>) => {
+      const { id, title, salePrice, imageUrl, userId } = action.payload;
+      const vendorId = userId;
       const existingItem = state.find((item) => item.id === id);
 
       if (existingItem) {
-        // If the item exists, update the quantity
         existingItem.qty += 1;
       } else {
-        // If the item doesn't exist, add it to the cart
-        const newItem = { id, title, salePrice, qty: 1, imageUrl, vendorId };
-        state.push(newItem);
-        // Update localStorage with the new state
-        if (typeof window !== "undefined") {
-          localStorage.setItem("cart", JSON.stringify([...state]));
-        }
+        state.push({ id, title, salePrice, imageUrl, qty: 1, vendorId });
       }
+
+      persistCart([...state]);
     },
-    removeFromCart: (state, action) => {
+    removeFromCart: (state, action: PayloadAction<string>) => {
       const cartId = action.payload;
       const newState = state.filter((item) => item.id !== cartId);
-      // Update localStorage with the new state
-      if (typeof window !== "undefined") {
-        localStorage.setItem("cart", JSON.stringify(newState));
-      }
+      persistCart(newState);
       return newState;
     },
-    incrementQty: (state, action) => {
+    incrementQty: (state, action: PayloadAction<string>) => {
       const cartId = action.payload;
       const cartItem = state.find((item) => item.id === cartId);
-      if (cartItem) {
-        cartItem.qty += 1;
-        // Update localStorage with the new state
-        if (typeof window !== "undefined") {
-          localStorage.setItem("cart", JSON.stringify([...state]));
-        }
-      }
+      if (!cartItem) return;
+
+      cartItem.qty += 1;
+      persistCart([...state]);
     },
-    decrementQty: (state, action) => {
+    decrementQty: (state, action: PayloadAction<string>) => {
       const cartId = action.payload;
       const cartItem = state.find((item) => item.id === cartId);
-      if (cartItem && cartItem.qty > 1) {
-        cartItem.qty -= 1;
-        // Update localStorage with the new state
-        if (typeof window !== "undefined") {
-          localStorage.setItem("cart", JSON.stringify([...state]));
-        }
-      }
+      if (!cartItem || cartItem.qty <= 1) return;
+
+      cartItem.qty -= 1;
+      persistCart([...state]);
     },
   },
 });
+
 export const { addToCart, removeFromCart, incrementQty, decrementQty } =
   cartSlice.actions;
 export default cartSlice.reducer;

@@ -1,17 +1,26 @@
-const { createSlice } = require("@reduxjs/toolkit");
-const initialState = {
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+
+type CheckoutState = {
+  currentStep: number;
+  checkoutFormData: Record<string, unknown>;
+};
+
+const initialState: CheckoutState = {
   currentStep: 1,
   checkoutFormData: {},
 };
+
 const checkoutSlice = createSlice({
   name: "checkout",
   initialState,
   reducers: {
-    // Functions to used to manipulate the state
-    setCurrentStep: (state, action) => {
+    setCurrentStep: (state, action: PayloadAction<number>) => {
       state.currentStep = action.payload;
     },
-    updateCheckoutFormData: (state, action) => {
+    updateCheckoutFormData: (
+      state,
+      action: PayloadAction<Record<string, unknown>>
+    ) => {
       state.checkoutFormData = {
         ...state.checkoutFormData,
         ...action.payload,
