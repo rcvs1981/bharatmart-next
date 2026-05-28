@@ -72,7 +72,7 @@
     "@types/react": "^19.2.14",
     "autoprefixer": "^10.4.27",
     "eslint-config-next": "^16.1.6",
-    "postcss": "^8.5.8",
+    "postcss": "^8.5.10",
     "prisma": "^7.4.2",
     "shadcn": "^3.8.5",
     "tailwindcss": "^4.2.1",
